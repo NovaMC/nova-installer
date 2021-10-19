@@ -49,7 +49,7 @@ public class Installer {
     }
 
     public void start() {
-        FlatDarkLaf.install();
+        FlatDarkLaf.setup();
 
         try {
             UIManager.setLookAndFeel(new FlatDarkLaf());
@@ -91,7 +91,7 @@ public class Installer {
         frame.setLayout(new BorderLayout());
         frame.setSize(350,300);
         frame.setLocationRelativeTo(null); // Centers the window
-        frame.setIconImage(new ImageIcon(Objects.requireNonNull(Utils.class.getClassLoader().getResource("nova_enhancements_icon.png"))).getImage()); // Credit to Pixxi#0001 for the icon
+        frame.setIconImage(new ImageIcon(Objects.requireNonNull(Utils.class.getClassLoader().getResource("nova_icon.png"))).getImage());
 
         JPanel topPanel = new JPanel(new VerticalLayout());
 
@@ -197,7 +197,7 @@ public class Installer {
 
             try {
                 String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
-                VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.ENHANCEMENTS);
+                VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
             } catch (IOException e) {
                 System.out.println("Failed to install version and profile to vanilla launcher!");
                 e.printStackTrace();
@@ -291,7 +291,7 @@ public class Installer {
     }
 
     // Works up to 2GB because of long limitation
-    class Downloader extends SwingWorker<Void, Void> {
+    static class Downloader extends SwingWorker<Void, Void> {
         private final String url;
         private final File file;
 

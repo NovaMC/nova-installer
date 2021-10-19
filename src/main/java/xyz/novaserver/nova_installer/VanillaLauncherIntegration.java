@@ -19,7 +19,7 @@ public class VanillaLauncherIntegration {
         installProfile(vanillaGameDir, instanceDir, profileName, versionId, icon);
     }
 
-    public static void installVersion(Path mcDir, String gameVersion, String loaderName, String loaderVersion) throws IOException {
+    private static void installVersion(Path mcDir, String gameVersion, String loaderName, String loaderVersion) throws IOException {
         System.out.println("Installing " + gameVersion + " with fabric " + loaderVersion);
         String versionId = String.format("%s-%s-%s", loaderName, loaderVersion, gameVersion);
         Path versionsDir = mcDir.resolve("versions");
@@ -90,7 +90,7 @@ public class VanillaLauncherIntegration {
         }
 
         try {
-            InputStream is = Utils.class.getClassLoader().getResourceAsStream("nova_enhancements_icon.png");
+            InputStream is = Utils.class.getClassLoader().getResourceAsStream("nova_icon.png");
 
             String var4;
             try {
@@ -130,7 +130,7 @@ public class VanillaLauncherIntegration {
     }
 
     public enum Icon {
-        ENHANCEMENTS,
+        NOVA,
         FABRIC
     }
 }
