@@ -86,7 +86,7 @@ public class Installer {
         GAME_VERSIONS = INSTALLER_META.getGameVersions();
         EDITIONS = INSTALLER_META.getEditions();
 
-        JFrame frame = new JFrame("Nova Pack Installer");
+        JFrame frame = new JFrame("Nova Installer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setSize(350,300);
