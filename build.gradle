@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation "org.json:json:20210307"
-    implementation 'com.formdev:flatlaf:1.6.1'
+    implementation "com.formdev:flatlaf:1.6.1"
 
     implementation "net.fabricmc:fabric-installer:0.8.0"
 }
@@ -62,10 +62,6 @@ task nativeExe(dependsOn: [downloadBootstrap], type: FileOutput) {
 build.dependsOn nativeExe
 
 jar {
-//    into 'mods', {
-//        from 'mods'
-//    }
-
     manifest {
         attributes("Main-Class": application.mainClass)
     }

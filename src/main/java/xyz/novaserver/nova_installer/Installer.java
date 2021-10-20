@@ -77,7 +77,7 @@ public class Installer {
             JOptionPane.showMessageDialog(null, "The installer was unable to fetch metadata from the server, please check your internet connection and try again later.", "Please check your internet connection!", JOptionPane.ERROR_MESSAGE);
             return;
         } catch (JSONException e) {
-            System.out.println("Failed to fetch installer metadata from the server!");
+            System.out.println("Failed to parse metadata!");
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Installer metadata parsing failed, please contact Justsnoopy30! \nError: " + e, "Metadata Parsing Failed!", JOptionPane.ERROR_MESSAGE);
             return;
@@ -96,7 +96,6 @@ public class Installer {
         JPanel topPanel = new JPanel(new VerticalLayout());
 
         JPanel editionPanel = new JPanel();
-
         JLabel editionDropdownLabel = new JLabel("Select Edition:");
         editionDropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -110,7 +109,6 @@ public class Installer {
         selectedEditionName = editionNameList[0];
         String[] editionDisplayNameList = editionDisplayNames.toArray(new String[0]);
         selectedEditionDisplayName = editionDisplayNameList[0];
-
         editionDropdown = new JComboBox<>(editionDisplayNameList);
         editionDropdown.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -123,12 +121,10 @@ public class Installer {
                 readyAll();
             }
         });
-
         editionPanel.add(editionDropdownLabel);
         editionPanel.add(editionDropdown);
 
         JPanel versionPanel = new JPanel();
-
         JLabel versionDropdownLabel = new JLabel("Select Game Version:");
         versionDropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -136,7 +132,6 @@ public class Installer {
         Collections.reverse(gameVersions); // Reverse the order of the list so that the latest version is on top and older versions downward
         String[] gameVersionList = gameVersions.toArray(new String[0]);
         selectedVersion = gameVersionList[0];
-
         versionDropdown = new JComboBox<>(gameVersionList);
         versionDropdown.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -145,15 +140,12 @@ public class Installer {
                 readyAll();
             }
         });
-
         versionPanel.add(versionDropdownLabel);
         versionPanel.add(versionDropdown);
 
         JPanel installDirectoryPanel = new JPanel();
-
         JLabel installDirectoryPickerLabel = new JLabel("Select Install Directory:");
         installDirectoryPickerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         installDirectoryPicker = new JButton(getDefaultInstallDir().toFile().getName());
         installDirectoryPicker.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
@@ -168,7 +160,6 @@ public class Installer {
                 readyAll();
             }
         });
-
         installDirectoryPanel.add(installDirectoryPickerLabel);
         installDirectoryPanel.add(installDirectoryPicker);
 
@@ -201,7 +192,7 @@ public class Installer {
             } catch (IOException e) {
                 System.out.println("Failed to install version and profile to vanilla launcher!");
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Failed to install to vanilla launcher, please contact Justsnoopy30! \nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Failed to install to vanilla launcher, please contact Lui798! \nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -215,9 +206,7 @@ public class Installer {
             setInteractionEnabled(false);
 
             String zipName = selectedEditionName + ".zip";
-
             String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
-
             File saveLocation = getStorageDirectory().resolve(zipName).toFile();
 
             final Downloader downloader = new Downloader(downloadURL, saveLocation);
@@ -284,7 +273,6 @@ public class Installer {
 
         frame.getContentPane().add(topPanel, BorderLayout.NORTH);
         frame.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
-
         frame.setVisible(true);
 
         System.out.println("Launched!");
@@ -334,7 +322,6 @@ public class Installer {
             int BUFFER_SIZE = 2048; // Buffer Size
 
             ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zip));
-
             ZipEntry entry = zipIn.getNextEntry();
             // iterates over entries in the zip file
             while (entry != null) {
@@ -407,7 +394,6 @@ public class Installer {
 
     public Path getVanillaGameDir() {
         String os = System.getProperty("os.name").toLowerCase();
-
         return os.contains("mac") ? getAppDataDirectory().resolve("minecraft") : getAppDataDirectory().resolve(".minecraft");
     }
 

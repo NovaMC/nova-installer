@@ -46,7 +46,6 @@ public class VanillaLauncherIntegration {
         System.out.println("Creating profile");
 
         JSONObject jsonObject = new JSONObject(Utils.readString(launcherProfiles));
-
         JSONObject profiles = jsonObject.getJSONObject("profiles");
 
         String foundProfileName = profileName;
