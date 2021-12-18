@@ -188,7 +188,11 @@ public class Installer {
 
             try {
                 String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
-                VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName + " for " + selectedVersion, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+                if (!success) {
+                    System.out.println("Failed to install to launcher, canceling!");
+                    return;
+                }
             } catch (IOException e) {
                 System.out.println("Failed to install version and profile to vanilla launcher!");
                 e.printStackTrace();

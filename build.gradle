@@ -22,9 +22,9 @@ repositories {
 
 dependencies {
     implementation "org.json:json:20210307"
-    implementation "com.formdev:flatlaf:1.6.1"
+    implementation 'com.formdev:flatlaf:1.6.5'
 
-    implementation "net.fabricmc:fabric-installer:0.8.0"
+    implementation "net.fabricmc:fabric-installer:0.10.2"
 }
 
 application {
@@ -36,7 +36,7 @@ class FileOutput extends DefaultTask {
     File output
 }
 
-def bootstrapVersion = "0.1.4"
+def bootstrapVersion = "0.2.1"
 def bootstrapArch = "i686"
 
 task downloadBootstrap(type: Download) {
