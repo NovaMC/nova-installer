@@ -52,11 +52,19 @@ public class InstallerMeta {
     public static class Edition {
         String name;
         String displayName;
+        boolean unstable;
         List<String> compatibleVersions = new ArrayList<>();
 
         public Edition(JSONObject jsonObject) {
             this.name = jsonObject.getString("name");
             this.displayName = jsonObject.getString("display_name");
+
+            try {
+                this.unstable = jsonObject.getBoolean("unstable");
+            } catch (JSONException e) {
+                System.out.println("No key/value found for unstable! Using the default value of false.");
+                this.unstable = false;
+            }
 
             for (int i = 0; i < jsonObject.getJSONArray("compatible_versions").toList().size(); i++){
                 compatibleVersions.add(jsonObject.getJSONArray("compatible_versions").toList().get(i).toString());

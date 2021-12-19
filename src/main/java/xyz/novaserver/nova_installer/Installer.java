@@ -181,6 +181,13 @@ public class Installer {
                 return;
             }
 
+            if (EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get().unstable) {
+                int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! You may experience crashes or other stability errors while playing.\n\nContinue with installation?", "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
+                if (result != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
             // Always use fabric loader
             Reference.metaServerUrl = "https://meta.fabricmc.net/";
             System.out.println("Using fabric loader");
@@ -188,7 +195,7 @@ public class Installer {
 
             try {
                 String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
-                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName + " for " + selectedVersion, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
                 if (!success) {
                     System.out.println("Failed to install to launcher, canceling!");
                     return;
@@ -262,6 +269,7 @@ public class Installer {
                         editionDropdown.setEnabled(true);
                         versionDropdown.setEnabled(true);
                         installDirectoryPicker.setEnabled(true);
+                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName + " to your Minecraft launcher! Run this installer again when you want to update the pack.", "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         button.setText("Installation failed!");
                         System.out.println("Failed to install to mods folder!");
