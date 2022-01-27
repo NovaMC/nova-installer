@@ -12,6 +12,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
@@ -25,6 +27,7 @@ public class Installer {
     List<InstallerMeta.Edition> EDITIONS;
     List<String> GAME_VERSIONS;
     String BASE_URL = "https://raw.githubusercontent.com/NovaMC/nova-installer-files/master/";
+    String API_URL = "https://api.github.com/repos/NovaMC/nova-installer/releases/latest";
 
     String selectedEditionName;
     String selectedEditionDisplayName;
@@ -182,7 +185,8 @@ public class Installer {
             }
 
             if (EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get().unstable) {
-                int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! You may experience crashes or other stability errors while playing.\n\nContinue with installation?", "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
+                int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
+                        "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
                 if (result != JOptionPane.YES_OPTION) {
                     return;
                 }
@@ -251,7 +255,8 @@ public class Installer {
                         boolean isEmpty = modsFolderContents.length == 0;
 
                         if (modsFolder.exists() && modsFolder.isDirectory() && !isEmpty) {
-                            int result = JOptionPane.showConfirmDialog(frame,"An existing mods folder was found in the selected game directory. Do you want to delete all existing mods before installation to prevent version conflicts? (Unless you know exactly what you are doing and how to solve the conflicts, press yes)", "Mods Folder Detected",
+                            int result = JOptionPane.showConfirmDialog(frame,"An existing mods folder was found in the selected game directory. Do you want to delete all existing mods before installation to prevent version conflicts?"
+                                            + "\n\n(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
                                     JOptionPane.YES_NO_OPTION,
                                     JOptionPane.QUESTION_MESSAGE);
                             if (result == JOptionPane.YES_OPTION) {
@@ -269,7 +274,9 @@ public class Installer {
                         editionDropdown.setEnabled(true);
                         versionDropdown.setEnabled(true);
                         installDirectoryPicker.setEnabled(true);
-                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName + " to your Minecraft launcher! Run this installer again when you want to update the pack.", "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName + " to your Minecraft launcher! Run this installer again when you want to update the pack.",
+                                "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
+                        System.exit(0);
                     } else {
                         button.setText("Installation failed!");
                         System.out.println("Failed to install to mods folder!");
@@ -288,6 +295,30 @@ public class Installer {
         frame.setVisible(true);
 
         System.out.println("Launched!");
+
+        // Check for updates and notify the user
+        UpdateMeta updateMeta = new UpdateMeta(API_URL);
+        try {
+            updateMeta.load();
+            if (!updateMeta.hasLatestVersion()) {
+                int result = JOptionPane.showConfirmDialog(frame,"An update for Nova Installer is available: " + updateMeta.getLatestVersion()
+                                + "\nWe recommend staying up to date to ensure you have the latest fixes & features!\n\nWould you like to open the download page now?","Nova Installer Update",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE);
+                if (result == JOptionPane.YES_OPTION) {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(updateMeta.getUpdateUrl()));
+                        System.exit(0);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Failed to load update metadata!");
+            e.printStackTrace();
+        } catch (URISyntaxException e) {
+            System.out.println("Failed to open update url!");
+            e.printStackTrace();
+        }
     }
 
     // Works up to 2GB because of long limitation
