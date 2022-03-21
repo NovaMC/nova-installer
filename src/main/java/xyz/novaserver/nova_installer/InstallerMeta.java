@@ -19,8 +19,11 @@ public class InstallerMeta {
 
     public void load() throws IOException, JSONException {
         JSONObject json = JsonReader.readJsonFromUrl(this.metaUrl);
-        json.getJSONArray("game_versions").toList().forEach(element -> gameVersions.add(element.toString()));
         json.getJSONArray("editions").forEach(object -> editions.add(new Edition((JSONObject) object)));
+        editions.forEach(edition -> edition.compatibleVersions.forEach(version -> {
+            if (!gameVersions.contains(version))
+                gameVersions.add(version);
+        }));
     }
 
     public List<String> getGameVersions() {
