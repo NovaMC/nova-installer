@@ -193,14 +193,14 @@ public class Installer {
 
         installButton = new JButton("Install");
         installButton.addActionListener(action -> {
-            if (!EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName))
-                    .findFirst().get().compatibleVersions.contains(selectedVersion)) {
+            InstallerMeta.Edition matchedEdition = EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get();
+
+            if (!matchedEdition.compatibleVersions.contains(selectedVersion)) {
                 JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.",
                         "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
-            if (EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get().unstable) {
+            if (matchedEdition.unstable) {
                 int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! " +
                                 "You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
                         "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
@@ -209,8 +209,7 @@ public class Installer {
                 }
             }
 
-            String loaderName = "fabric-loader";
-
+            final String loaderName = "fabric-loader";
             try {
                 String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
                 boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(),
@@ -236,11 +235,11 @@ public class Installer {
             progressBar.setValue(0);
             setInteractionEnabled(false);
 
-            String zipName = selectedEditionName + ".zip";
-            String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
-            File saveLocation = getStorageDirectory().resolve(zipName).toFile();
-
+            final String zipName = selectedEditionName + ".zip";
+            final String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
+            final File saveLocation = getStorageDirectory().resolve(zipName).toFile();
             final Downloader downloader = new Downloader(downloadURL, saveLocation);
+
             downloader.addPropertyChangeListener(event -> {
                 if ("progress".equals(event.getPropertyName())) {
                     progressBar.setValue((Integer) event.getNewValue());
