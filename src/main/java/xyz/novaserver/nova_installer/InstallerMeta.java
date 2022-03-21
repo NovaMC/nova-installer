@@ -35,10 +35,10 @@ public class InstallerMeta {
     }
 
     public static class Edition {
-        String name;
-        String displayName;
-        boolean unstable;
-        List<String> compatibleVersions = new ArrayList<>();
+        public final String name;
+        public final String displayName;
+        public boolean unstable;
+        public final List<String> compatibleVersions = new ArrayList<>();
 
         public Edition(JSONObject jsonObject) {
             this.name = jsonObject.getString("name");
@@ -47,7 +47,7 @@ public class InstallerMeta {
             try {
                 this.unstable = jsonObject.getBoolean("unstable");
             } catch (JSONException e) {
-                System.out.println("No key/value found for unstable! Using the default value of false.");
+                System.out.println("No unstable value found for " + name + "! Using the default value of false.");
                 this.unstable = false;
             }
 

@@ -140,7 +140,8 @@ public class VanillaLauncherIntegration {
 
     private static ProfileInstaller.LauncherType showLauncherTypeSelection() {
         String[] options = new String[]{Utils.BUNDLE.getString("prompt.launcher.type.xbox"), Utils.BUNDLE.getString("prompt.launcher.type.win32")};
-        int result = JOptionPane.showOptionDialog(null, Utils.BUNDLE.getString("prompt.launcher.type.body"), Utils.BUNDLE.getString("installer.title"), JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+        int result = JOptionPane.showOptionDialog(null, Utils.BUNDLE.getString("prompt.launcher.type.body"),
+                Utils.BUNDLE.getString("installer.title"), JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
         if (result == JOptionPane.CLOSED_OPTION) {
             return null;
         } else {
@@ -169,7 +170,9 @@ public class VanillaLauncherIntegration {
     }
 
     public static List<ProfileInstaller.LauncherType> getInstalledLauncherTypes(Path mcDir) {
-        return Arrays.stream(ProfileInstaller.LauncherType.values()).filter((launcherType) -> Files.exists(mcDir.resolve(launcherType.profileJsonName))).collect(Collectors.toList());
+        return Arrays.stream(ProfileInstaller.LauncherType.values())
+                .filter(launcherType -> Files.exists(mcDir.resolve(launcherType.profileJsonName)))
+                .collect(Collectors.toList());
     }
 
     public enum Icon {

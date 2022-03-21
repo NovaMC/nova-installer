@@ -42,8 +42,6 @@ public class Installer {
     private JButton installDirectoryPicker;
     private JProgressBar progressBar;
 
-    boolean finishedSuccessfulInstall = false;
-
     public Installer() {
         FlatDarkLaf.setup();
         try {
@@ -100,10 +98,10 @@ public class Installer {
 
     public static void main(String[] args) {
         System.out.println("Launching installer...");
-        new Installer().start();
+        new Installer().start(args);
     }
 
-    public void start() {
+    public void start(String[] args) {
         JFrame frame = new JFrame("Nova Installer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -295,7 +293,6 @@ public class Installer {
                     boolean installSuccess = installFromZip(saveLocation);
                     if (installSuccess) {
                         installButton.setText("Installation succeeded!");
-                        finishedSuccessfulInstall = true;
                         editionDropdown.setEnabled(true);
                         versionDropdown.setEnabled(true);
                         installDirectoryPicker.setEnabled(true);
@@ -488,7 +485,6 @@ public class Installer {
     }
 
     public void readyAll() {
-        finishedSuccessfulInstall = false;
         installButton.setText("Install");
         progressBar.setValue(0);
         setInteractionEnabled(true);
