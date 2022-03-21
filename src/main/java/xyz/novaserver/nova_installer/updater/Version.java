@@ -2,14 +2,20 @@ package xyz.novaserver.nova_installer.updater;
 
 // From https://gist.github.com/brianguertin/ada4b65c6d1c4f6d3eee3c12b6ce021b
 public class Version implements Comparable<Version> {
-    public final int[] numbers;
+    private final String name;
+    private final int[] numbers;
 
     public Version(String version) {
-        final String[] split = version.split("\\-")[0].split("\\.");
+        name = version;
+        final String[] split = version.replaceAll("[^0-9.]","").split("\\-")[0].split("\\.");
         numbers = new int[split.length];
         for (int i = 0; i < split.length; i++) {
             numbers[i] = Integer.parseInt(split[i]);
         }
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override

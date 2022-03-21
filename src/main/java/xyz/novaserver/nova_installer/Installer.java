@@ -7,6 +7,7 @@ import net.fabricmc.installer.util.Utils;
 import xyz.novaserver.nova_installer.layouts.VerticalLayout;
 import org.json.JSONException;
 import xyz.novaserver.nova_installer.updater.UpdateMeta;
+import xyz.novaserver.nova_installer.updater.Version;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.swing.*;
@@ -24,33 +25,26 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Installer {
-    InstallerMeta INSTALLER_META;
-    List<InstallerMeta.Edition> EDITIONS;
-    List<String> GAME_VERSIONS;
-    String BASE_URL = "https://raw.githubusercontent.com/NovaMC/nova-installer-files/master/";
-    String API_URL = "https://api.github.com/repos/NovaMC/nova-installer/releases/latest";
+    private final String BASE_URL;
+    private final Properties INSTALLER_INFO;
+    private final List<InstallerMeta.Edition> EDITIONS;
+    private final List<String> GAME_VERSIONS;
 
-    String selectedEditionName;
-    String selectedEditionDisplayName;
-    String selectedVersion;
-    Path customInstallDir;
+    private String selectedEditionName;
+    private String selectedEditionDisplayName;
+    private String selectedVersion;
+    private Path customInstallDir;
 
-    JButton button;
-    JComboBox<String> editionDropdown;
-    JComboBox<String> versionDropdown;
-    JButton installDirectoryPicker;
-    JProgressBar progressBar;
+    private JButton installButton;
+    private JComboBox<String> editionDropdown;
+    private JComboBox<String> versionDropdown;
+    private JButton installDirectoryPicker;
+    private JProgressBar progressBar;
 
     boolean finishedSuccessfulInstall = false;
 
-    public static void main(String[] args) {
-        System.out.println("Launching installer...");
-        new Installer().start();
-    }
-
-    public void start() {
+    public Installer() {
         FlatDarkLaf.setup();
-
         try {
             UIManager.setLookAndFeel(new FlatDarkLaf());
         } catch (Exception e) {
@@ -64,28 +58,51 @@ public class Installer {
         } catch (Exception e) {
             System.out.println("Failed to fetch fabric version info from the server!");
             e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "The installer was unable to fetch fabric version info from the server, please check your internet connection and try again later.", "Please check your internet connection!", JOptionPane.ERROR_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(null, "The installer was unable to fetch fabric version info from the server," +
+                    "please check your internet connection and try again later.", "Please check your internet connection!", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         }
 
-        INSTALLER_META = new InstallerMeta(BASE_URL + "meta.json");
+        INSTALLER_INFO = new Properties();
         try {
-            INSTALLER_META.load();
+            INSTALLER_INFO.load(getClass().getClassLoader().getResourceAsStream("info.properties"));
+        } catch (IOException e) {
+            System.out.println("Failed to load local installer metadata!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Installer metadata parsing failed, please contact Lui798!" +
+                    "\nError: " + e, "Metadata Parsing Failed!", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+
+        BASE_URL = INSTALLER_INFO.getProperty("base-url");
+
+        InstallerMeta installerMeta = new InstallerMeta(BASE_URL + "meta.json");
+        try {
+            installerMeta.load();
         } catch (IOException e) {
             System.out.println("Failed to fetch installer metadata from the server!");
             e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "The installer was unable to fetch metadata from the server, please check your internet connection and try again later.", "Please check your internet connection!", JOptionPane.ERROR_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(null, "The installer was unable to fetch metadata from the server, " +
+                    "please check your internet connection and try again later.", "Please check your internet connection!", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         } catch (JSONException e) {
             System.out.println("Failed to parse metadata!");
             e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Installer metadata parsing failed, please contact Justsnoopy30! \nError: " + e, "Metadata Parsing Failed!", JOptionPane.ERROR_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(null, "Installer metadata parsing failed, please contact Lui798!" +
+                    "\nError: " + e, "Metadata Parsing Failed!", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         }
 
-        GAME_VERSIONS = INSTALLER_META.getGameVersions();
-        EDITIONS = INSTALLER_META.getEditions();
+        GAME_VERSIONS = installerMeta.getGameVersions();
+        EDITIONS = installerMeta.getEditions();
+    }
 
+    public static void main(String[] args) {
+        System.out.println("Launching installer...");
+        new Installer().start();
+    }
+
+    public void start() {
         JFrame frame = new JFrame("Nova Installer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -174,29 +191,30 @@ public class Installer {
         progressBar.setMaximum(100);
         progressBar.setStringPainted(true);
 
-        button = new JButton("Install");
-        button.addActionListener(action -> {
-            if (!EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get().compatibleVersions.contains(selectedVersion)) {
-                JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.", "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
+        installButton = new JButton("Install");
+        installButton.addActionListener(action -> {
+            if (!EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName))
+                    .findFirst().get().compatibleVersions.contains(selectedVersion)) {
+                JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.",
+                        "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             if (EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get().unstable) {
-                int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
+                int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! " +
+                                "You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
                         "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
                 if (result != JOptionPane.YES_OPTION) {
                     return;
                 }
             }
 
-            // Always use fabric loader
-            Reference.metaServerUrl = "https://meta.fabricmc.net/";
-            System.out.println("Using fabric loader");
             String loaderName = "fabric-loader";
 
             try {
                 String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
-                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(), selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(),
+                        selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
                 if (!success) {
                     System.out.println("Failed to install to launcher, canceling!");
                     return;
@@ -204,7 +222,8 @@ public class Installer {
             } catch (IOException e) {
                 System.out.println("Failed to install version and profile to vanilla launcher!");
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Failed to install to vanilla launcher, please contact Lui798! \nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Failed to install to vanilla launcher, please contact Lui798!" +
+                        "\nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -213,7 +232,7 @@ public class Installer {
                 storageDir.mkdir();
             }
 
-            button.setText("Downloading...");
+            installButton.setText("Downloading...");
             progressBar.setValue(0);
             setInteractionEnabled(false);
 
@@ -232,8 +251,8 @@ public class Installer {
                         System.out.println("Failed to download zip!");
                         e.getCause().printStackTrace();
 
-                        String msg = String.format("An error occurred while attempting to download the required files, please check your internet connection and try again! \nError: %s",
-                                e.getCause().toString());
+                        String msg = String.format("An error occurred while attempting to download the required files, " +
+                                "please check your internet connection and try again! \nError: %s", e.getCause().toString());
                         JOptionPane.showMessageDialog(frame,
                                 msg, "Download Failed!", JOptionPane.ERROR_MESSAGE, null);
                         readyAll();
@@ -241,7 +260,7 @@ public class Installer {
                         return;
                     }
 
-                    button.setText("Download completed!");
+                    installButton.setText("Download completed!");
 
                     File installDir = getInstallDir().toFile();
                     if (!installDir.exists() || !installDir.isDirectory()) installDir.mkdirs();
@@ -252,8 +271,9 @@ public class Installer {
                         boolean isEmpty = modsFolderContents.length == 0;
 
                         if (modsFolder.exists() && modsFolder.isDirectory() && !isEmpty) {
-                            int result = JOptionPane.showConfirmDialog(frame,"An existing mods folder was found in the selected game directory. Do you want to delete all existing mods before installation to prevent version conflicts?"
-                                            + "\n\n(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
+                            int result = JOptionPane.showConfirmDialog(frame,"An existing mods folder was found in the selected game directory. " +
+                                            "Do you want to delete all existing mods before installation to prevent version conflicts?\n\n" +
+                                            "(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
                                     JOptionPane.YES_NO_OPTION,
                                     JOptionPane.QUESTION_MESSAGE);
                             if (result == JOptionPane.YES_OPTION) {
@@ -266,18 +286,20 @@ public class Installer {
 
                     boolean installSuccess = installFromZip(saveLocation);
                     if (installSuccess) {
-                        button.setText("Installation succeeded!");
+                        installButton.setText("Installation succeeded!");
                         finishedSuccessfulInstall = true;
                         editionDropdown.setEnabled(true);
                         versionDropdown.setEnabled(true);
                         installDirectoryPicker.setEnabled(true);
-                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName + " to your Minecraft launcher! Run this installer again when you want to update the pack.",
+                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName +
+                                        " to your Minecraft launcher! Run this installer again when you want to update the pack.",
                                 "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
                         System.exit(0);
                     } else {
-                        button.setText("Installation failed!");
+                        installButton.setText("Installation failed!");
                         System.out.println("Failed to install to mods folder!");
-                        JOptionPane.showMessageDialog(frame, "Failed to install to mods folder, please make sure your game is closed and try again!", "Installation Failed!", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(frame, "Failed to install to mods folder, " +
+                                "please make sure your game is closed and try again!", "Installation Failed!", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             });
@@ -285,7 +307,7 @@ public class Installer {
         });
 
         bottomPanel.add(progressBar);
-        bottomPanel.add(button);
+        bottomPanel.add(installButton);
 
         frame.getContentPane().add(topPanel, BorderLayout.NORTH);
         frame.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
@@ -294,12 +316,15 @@ public class Installer {
         System.out.println("Launched!");
 
         // Check for updates and notify the user
-        UpdateMeta updateMeta = new UpdateMeta(API_URL);
+        UpdateMeta updateMeta = new UpdateMeta(INSTALLER_INFO.getProperty("updater-api-url"),
+                new Version(INSTALLER_INFO.getProperty("version")));
         try {
             updateMeta.load();
             if (!updateMeta.hasLatestVersion()) {
-                int result = JOptionPane.showConfirmDialog(frame,"An update for Nova Installer is available: " + updateMeta.getLatestVersion()
-                                + "\nWe recommend staying up to date to ensure you have the latest fixes & features!\n\nWould you like to open the download page now?","Nova Installer Update",
+                int result = JOptionPane.showConfirmDialog(frame,"An update for Nova Installer is available: " +
+                                updateMeta.getLatestVersion().getName() +
+                                "\nWe recommend staying up to date to ensure you have the latest fixes & features!" +
+                                "\n\nWould you like to open the download page now?","Nova Installer Update",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.INFORMATION_MESSAGE);
                 if (result == JOptionPane.YES_OPTION) {
@@ -319,7 +344,7 @@ public class Installer {
     }
 
     // Works up to 2GB because of long limitation
-    static class Downloader extends SwingWorker<Void, Void> {
+    private static class Downloader extends SwingWorker<Void, Void> {
         private final String url;
         private final File file;
 
@@ -451,12 +476,12 @@ public class Installer {
         editionDropdown.setEnabled(enabled);
         versionDropdown.setEnabled(enabled);
         installDirectoryPicker.setEnabled(enabled);
-        button.setEnabled(enabled);
+        installButton.setEnabled(enabled);
     }
 
     public void readyAll() {
         finishedSuccessfulInstall = false;
-        button.setText("Install");
+        installButton.setText("Install");
         progressBar.setValue(0);
         setInteractionEnabled(true);
     }
