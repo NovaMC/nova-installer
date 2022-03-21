@@ -1,6 +1,7 @@
 package xyz.novaserver.nova_installer;
 import com.formdev.flatlaf.FlatDarkLaf;
 import net.fabricmc.installer.Main;
+import net.fabricmc.installer.launcher.MojangLauncherHelperWrapper;
 import net.fabricmc.installer.util.MetaHandler;
 import net.fabricmc.installer.util.Reference;
 import net.fabricmc.installer.util.Utils;
@@ -204,6 +205,14 @@ public class Installer {
                 int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! " +
                                 "You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
                         "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
+                if (result != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            if (MojangLauncherHelperWrapper.isMojangLauncherOpen()) {
+                int result = JOptionPane.showConfirmDialog(frame, "Please close the Minecraft Launcher before continuing to ensure correct installation." +
+                                "\n\nWould you like to continue anyway?", "Minecraft Launcher Open", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (result != JOptionPane.YES_OPTION) {
                     return;
                 }
