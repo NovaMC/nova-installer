@@ -1,4 +1,4 @@
-package xyz.novaserver.nova_installer;
+package xyz.novaserver.nova_installer.updater;
 
 import org.json.JSONObject;
 
@@ -39,5 +39,9 @@ public class UpdateMeta {
 
     public int versionStringToInt(String version) {
         return Integer.parseInt(version.replaceAll("[^0-9]",""));
+    }
+
+    public int compare() {
+        return 0;
     }
 }

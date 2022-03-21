@@ -1,4 +1,4 @@
-package xyz.novaserver.nova_installer;
+package xyz.novaserver.nova_installer.updater;
 
 import org.json.JSONObject;
 

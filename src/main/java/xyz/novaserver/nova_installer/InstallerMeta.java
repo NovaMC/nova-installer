@@ -2,6 +2,7 @@ package xyz.novaserver.nova_installer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import xyz.novaserver.nova_installer.updater.JsonReader;
 
 import java.io.IOException;
 import java.util.ArrayList;

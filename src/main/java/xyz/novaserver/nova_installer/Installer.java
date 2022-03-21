@@ -6,6 +6,7 @@ import net.fabricmc.installer.util.Reference;
 import net.fabricmc.installer.util.Utils;
 import xyz.novaserver.nova_installer.layouts.VerticalLayout;
 import org.json.JSONException;
+import xyz.novaserver.nova_installer.updater.UpdateMeta;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.swing.*;
@@ -41,10 +42,6 @@ public class Installer {
     JProgressBar progressBar;
 
     boolean finishedSuccessfulInstall = false;
-
-    public Installer() {
-
-    }
 
     public static void main(String[] args) {
         System.out.println("Launching installer...");
