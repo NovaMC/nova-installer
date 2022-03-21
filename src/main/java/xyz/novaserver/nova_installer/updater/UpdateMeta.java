@@ -28,20 +28,12 @@ public class UpdateMeta {
     }
 
     public boolean hasLatestVersion() {
-        int current = versionStringToInt(getCurrentVersion());
-        int latest = versionStringToInt(getLatestVersion());
-        return current >= latest;
+        Version currentVersion = new Version(getCurrentVersion());
+        Version latestVersion = new Version(getLatestVersion().replaceAll("[^0-9.]",""));
+        return currentVersion.compareTo(latestVersion) >= 0;
     }
 
     public String getUpdateUrl() {
         return latestJson.getString("html_url");
-    }
-
-    public int versionStringToInt(String version) {
-        return Integer.parseInt(version.replaceAll("[^0-9]",""));
-    }
-
-    public int compare() {
-        return 0;
     }
 }
