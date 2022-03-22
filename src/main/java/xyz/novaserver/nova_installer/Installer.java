@@ -31,13 +31,12 @@ public class Installer {
     private final List<InstallerMeta.Edition> EDITIONS;
     private final List<String> GAME_VERSIONS;
 
-    private String selectedEditionName;
-    private String selectedEditionDisplayName;
+    private InstallerMeta.Edition selectedEdition;
     private String selectedVersion;
     private Path customInstallDir;
 
     private JButton installButton;
-    private JComboBox<String> editionDropdown;
+    private JComboBox<InstallerMeta.Edition> editionDropdown;
     private JComboBox<String> versionDropdown;
     private JButton installDirectoryPicker;
     private JProgressBar progressBar;
@@ -93,15 +92,25 @@ public class Installer {
         }
 
         GAME_VERSIONS = installerMeta.getGameVersions();
+        Collections.reverse(GAME_VERSIONS);
         EDITIONS = installerMeta.getEditions();
     }
 
     public static void main(String[] args) {
         System.out.println("Launching installer...");
-        new Installer().start(args);
+        new Installer().start(Arrays.asList(args));
     }
 
-    public void start(String[] args) {
+    public void start(List<String> args) {
+        // Handle cmd args
+        for (int i = 0; i < args.size(); i++) {
+            if (args.get(i).equals("--install") && args.size() > i + 1) {
+                final String name = args.get(i + 1);
+                System.out.println("Setting selectedEdition from commandline");
+                selectedEdition = EDITIONS.stream().filter(e -> e.name.equals(name)).findFirst().orElse(null);
+            }
+        }
+
         JFrame frame = new JFrame("Nova Installer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -115,25 +124,14 @@ public class Installer {
         JLabel editionDropdownLabel = new JLabel("Select Edition:");
         editionDropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        List<String> editionNames = new ArrayList<>();
-        List<String> editionDisplayNames = new ArrayList<>();
-        for (InstallerMeta.Edition edition : EDITIONS) {
-            editionNames.add(edition.name);
-            editionDisplayNames.add(edition.displayName);
-        }
-        String[] editionNameList = editionNames.toArray(new String[0]);
-        selectedEditionName = editionNameList[0];
-        String[] editionDisplayNameList = editionDisplayNames.toArray(new String[0]);
-        selectedEditionDisplayName = editionDisplayNameList[0];
-        editionDropdown = new JComboBox<>(editionDisplayNameList);
+        if (selectedEdition == null) selectedEdition = EDITIONS.get(0);
+        editionDropdown = new JComboBox<>(EDITIONS.toArray(new InstallerMeta.Edition[0]));
         editionDropdown.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
-                selectedEditionName = editionNameList[editionDropdown.getSelectedIndex()];
-                selectedEditionDisplayName = (String) e.getItem();
+                selectedEdition = (InstallerMeta.Edition) e.getItem();
                 if (customInstallDir == null) {
                     installDirectoryPicker.setText(getDefaultInstallDir().toFile().getName());
                 }
-
                 readyAll();
             }
         });
@@ -144,15 +142,11 @@ public class Installer {
         JLabel versionDropdownLabel = new JLabel("Select Game Version:");
         versionDropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        List<String> gameVersions = GAME_VERSIONS.subList(0, GAME_VERSIONS.size()); // Clone the list
-        Collections.reverse(gameVersions); // Reverse the order of the list so that the latest version is on top and older versions downward
-        String[] gameVersionList = gameVersions.toArray(new String[0]);
-        selectedVersion = gameVersionList[0];
-        versionDropdown = new JComboBox<>(gameVersionList);
+        if (selectedVersion == null) selectedVersion = GAME_VERSIONS.get(0);
+        versionDropdown = new JComboBox<>(GAME_VERSIONS.toArray(new String[0]));
         versionDropdown.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 selectedVersion = (String) e.getItem();
-
                 readyAll();
             }
         });
@@ -192,14 +186,12 @@ public class Installer {
 
         installButton = new JButton("Install");
         installButton.addActionListener(action -> {
-            InstallerMeta.Edition matchedEdition = EDITIONS.stream().filter(edition -> edition.name.equals(selectedEditionName)).findFirst().get();
-
-            if (!matchedEdition.compatibleVersions.contains(selectedVersion)) {
+            if (!selectedEdition.compatibleVersions.contains(selectedVersion)) {
                 JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.",
                         "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            if (matchedEdition.unstable) {
+            if (selectedEdition.unstable) {
                 int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! " +
                                 "You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
                         "Unstable Edition", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, null, null);
@@ -208,107 +200,7 @@ public class Installer {
                 }
             }
 
-            if (MojangLauncherHelperWrapper.isMojangLauncherOpen()) {
-                int result = JOptionPane.showConfirmDialog(frame, "Please close the Minecraft Launcher before continuing to ensure correct installation." +
-                                "\n\nWould you like to continue anyway?", "Minecraft Launcher Open", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (result != JOptionPane.YES_OPTION) {
-                    return;
-                }
-            }
-
-            final String loaderName = "fabric-loader";
-            try {
-                String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
-                boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(),
-                        selectedEditionDisplayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
-                if (!success) {
-                    System.out.println("Failed to install to launcher, canceling!");
-                    return;
-                }
-            } catch (IOException e) {
-                System.out.println("Failed to install version and profile to vanilla launcher!");
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Failed to install to vanilla launcher, please contact Lui798!" +
-                        "\nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            File storageDir = getStorageDirectory().toFile();
-            if (!storageDir.exists() || !storageDir.isDirectory()) {
-                storageDir.mkdir();
-            }
-
-            installButton.setText("Downloading...");
-            progressBar.setValue(0);
-            setInteractionEnabled(false);
-
-            final String zipName = selectedEditionName + ".zip";
-            final String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
-            final File saveLocation = getStorageDirectory().resolve(zipName).toFile();
-            final Downloader downloader = new Downloader(downloadURL, saveLocation);
-
-            downloader.addPropertyChangeListener(event -> {
-                if ("progress".equals(event.getPropertyName())) {
-                    progressBar.setValue((Integer) event.getNewValue());
-                } else if (event.getNewValue() == SwingWorker.StateValue.DONE) {
-                    try {
-                        downloader.get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        System.out.println("Failed to download zip!");
-                        e.getCause().printStackTrace();
-
-                        String msg = String.format("An error occurred while attempting to download the required files, " +
-                                "please check your internet connection and try again! \nError: %s", e.getCause().toString());
-                        JOptionPane.showMessageDialog(frame,
-                                msg, "Download Failed!", JOptionPane.ERROR_MESSAGE, null);
-                        readyAll();
-
-                        return;
-                    }
-
-                    installButton.setText("Download completed!");
-
-                    File installDir = getInstallDir().toFile();
-                    if (!installDir.exists() || !installDir.isDirectory()) installDir.mkdirs();
-
-                    File modsFolder = getInstallDir().resolve("mods").toFile();
-                    File[] modsFolderContents = modsFolder.listFiles();
-                    if (modsFolderContents != null) {
-                        boolean isEmpty = modsFolderContents.length == 0;
-
-                        if (modsFolder.exists() && modsFolder.isDirectory() && !isEmpty) {
-                            int result = JOptionPane.showConfirmDialog(frame,"An existing mods folder was found in the selected game directory. " +
-                                            "Do you want to delete all existing mods before installation to prevent version conflicts?\n\n" +
-                                            "(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
-                                    JOptionPane.YES_NO_OPTION,
-                                    JOptionPane.QUESTION_MESSAGE);
-                            if (result == JOptionPane.YES_OPTION) {
-                                deleteDirectory(modsFolder);
-                            }
-                        }
-                    }
-
-                    if (!modsFolder.exists() || !modsFolder.isDirectory()) modsFolder.mkdirs();
-
-                    boolean installSuccess = installFromZip(saveLocation);
-                    if (installSuccess) {
-                        installButton.setText("Installation succeeded!");
-                        editionDropdown.setEnabled(true);
-                        versionDropdown.setEnabled(true);
-                        installDirectoryPicker.setEnabled(true);
-                        JOptionPane.showMessageDialog(frame, "Successfully installed " + selectedEditionDisplayName +
-                                        " to your Minecraft launcher! Run this installer again when you want to update the pack.",
-                                "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
-                        System.exit(0);
-                    } else {
-                        installButton.setText("Installation failed!");
-                        System.out.println("Failed to install to mods folder!");
-                        JOptionPane.showMessageDialog(frame, "Failed to install to mods folder, " +
-                                "please make sure your game is closed and try again!", "Installation Failed!", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-            });
-            downloader.execute();
+            runInstall(frame);
         });
 
         bottomPanel.add(progressBar);
@@ -319,6 +211,11 @@ public class Installer {
         frame.setVisible(true);
 
         System.out.println("Launched!");
+
+        // Run install automatically if argument is specified
+        if (args.contains("--install") && args.size() > args.indexOf("--install") + 1) {
+            runInstall(frame);
+        }
 
         // Check for updates and notify the user
         UpdateMeta updateMeta = new UpdateMeta(INSTALLER_INFO.getProperty("updater-api-url"),
@@ -385,6 +282,110 @@ public class Installer {
             }
             return null;
         }
+    }
+
+    public void runInstall(JFrame parent) {
+        if (MojangLauncherHelperWrapper.isMojangLauncherOpen()) {
+            int result = JOptionPane.showConfirmDialog(parent, "Please close the Minecraft Launcher before continuing to ensure correct installation." +
+                    "\n\nWould you like to continue anyway?", "Minecraft Launcher Open", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (result != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+
+        final String loaderName = "fabric-loader";
+        try {
+            String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
+            boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(),
+                    selectedEdition.displayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+            if (!success) {
+                System.out.println("Failed to install to launcher, canceling!");
+                return;
+            }
+        } catch (IOException e) {
+            System.out.println("Failed to install version and profile to vanilla launcher!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(parent, "Failed to install to vanilla launcher, please contact Lui798!" +
+                    "\nError: " + e, "Failed to install to launcher", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        File storageDir = getStorageDirectory().toFile();
+        if (!storageDir.exists() || !storageDir.isDirectory()) {
+            storageDir.mkdir();
+        }
+
+        installButton.setText("Downloading...");
+        progressBar.setValue(0);
+        setInteractionEnabled(false);
+
+        final String zipName = selectedEdition.name + ".zip";
+        final String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
+        final File saveLocation = getStorageDirectory().resolve(zipName).toFile();
+        final Downloader downloader = new Downloader(downloadURL, saveLocation);
+
+        downloader.addPropertyChangeListener(event -> {
+            if ("progress".equals(event.getPropertyName())) {
+                progressBar.setValue((Integer) event.getNewValue());
+            } else if (event.getNewValue() == SwingWorker.StateValue.DONE) {
+                try {
+                    downloader.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    System.out.println("Failed to download zip!");
+                    e.getCause().printStackTrace();
+
+                    String msg = String.format("An error occurred while attempting to download the required files, " +
+                            "please check your internet connection and try again! \nError: %s", e.getCause().toString());
+                    JOptionPane.showMessageDialog(parent,
+                            msg, "Download Failed!", JOptionPane.ERROR_MESSAGE, null);
+                    readyAll();
+
+                    return;
+                }
+
+                installButton.setText("Download completed!");
+
+                File installDir = getInstallDir().toFile();
+                if (!installDir.exists() || !installDir.isDirectory()) installDir.mkdirs();
+
+                File modsFolder = getInstallDir().resolve("mods").toFile();
+                File[] modsFolderContents = modsFolder.listFiles();
+                if (modsFolderContents != null) {
+                    boolean isEmpty = modsFolderContents.length == 0;
+
+                    if (modsFolder.exists() && modsFolder.isDirectory() && !isEmpty) {
+                        int result = JOptionPane.showConfirmDialog(parent,"An existing mods folder was found in the selected game directory. " +
+                                        "Do you want to delete all existing mods before installation to prevent version conflicts?\n\n" +
+                                        "(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
+                                JOptionPane.YES_NO_OPTION,
+                                JOptionPane.QUESTION_MESSAGE);
+                        if (result == JOptionPane.YES_OPTION) {
+                            deleteDirectory(modsFolder);
+                        }
+                    }
+                }
+
+                if (!modsFolder.exists() || !modsFolder.isDirectory()) modsFolder.mkdirs();
+
+                boolean installSuccess = installFromZip(saveLocation);
+                if (installSuccess) {
+                    installButton.setText("Installation succeeded!");
+                    editionDropdown.setEnabled(true);
+                    versionDropdown.setEnabled(true);
+                    installDirectoryPicker.setEnabled(true);
+                    JOptionPane.showMessageDialog(parent, "Successfully installed " + selectedEdition.displayName +
+                                    " to your Minecraft launcher! Run this installer again when you want to update the pack.",
+                            "Installation Succeeded!", JOptionPane.INFORMATION_MESSAGE);
+                    System.exit(0);
+                } else {
+                    installButton.setText("Installation failed!");
+                    System.out.println("Failed to install to mods folder!");
+                    JOptionPane.showMessageDialog(parent, "Failed to install to mods folder, " +
+                            "please make sure your game is closed and try again!", "Installation Failed!", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        downloader.execute();
     }
 
     public boolean installFromZip(File zip) {
@@ -459,7 +460,7 @@ public class Installer {
         else
             mcDir = getAppDataDirectory().resolve(".minecraft");
 
-        return mcDir.resolve("packs").resolve(selectedEditionName);
+        return mcDir.resolve("packs").resolve(selectedEdition.name);
     }
 
     public Path getVanillaGameDir() {

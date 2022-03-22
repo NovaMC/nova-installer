@@ -55,5 +55,10 @@ public class InstallerMeta {
                 compatibleVersions.add(jsonObject.getJSONArray("compatible_versions").toList().get(i).toString());
             }
         }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
     }
 }
