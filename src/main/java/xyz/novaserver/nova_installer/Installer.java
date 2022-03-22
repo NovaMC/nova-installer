@@ -35,6 +35,7 @@ public class Installer {
     private String selectedVersion;
     private Path customInstallDir;
 
+    private JFrame frame;
     private JButton installButton;
     private JComboBox<InstallerMeta.Edition> editionDropdown;
     private JComboBox<String> versionDropdown;
@@ -104,14 +105,19 @@ public class Installer {
     public void start(List<String> args) {
         // Handle cmd args
         for (int i = 0; i < args.size(); i++) {
-            if (args.get(i).equals("--install") && args.size() > i + 1) {
-                final String name = args.get(i + 1);
-                System.out.println("Setting selectedEdition from commandline");
-                selectedEdition = EDITIONS.stream().filter(e -> e.name.equals(name)).findFirst().orElse(null);
+            if (args.size() > i + 1) {
+                if (args.get(i).equals("--install")) {
+                    final String name = args.get(i + 1);
+                    System.out.println("Setting selectedEdition from commandline: " + name);
+                    selectedEdition = EDITIONS.stream().filter(e -> e.name.equals(name)).findFirst().orElse(null);
+                }
+                if (args.get(i).equals("--directory")) {
+                    customInstallDir = new File(args.get(i + 1)).toPath();
+                }
             }
         }
 
-        JFrame frame = new JFrame("Nova Installer");
+        frame = new JFrame("Nova Installer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setSize(350,300);
@@ -157,6 +163,7 @@ public class Installer {
         JLabel installDirectoryPickerLabel = new JLabel("Select Install Directory:");
         installDirectoryPickerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         installDirectoryPicker = new JButton(getDefaultInstallDir().toFile().getName());
+        if (customInstallDir != null) installDirectoryPicker.setText(customInstallDir.toFile().getName());
         installDirectoryPicker.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -166,7 +173,6 @@ public class Installer {
                 File file = fileChooser.getSelectedFile();
                 customInstallDir = file.toPath();
                 installDirectoryPicker.setText(file.getName());
-
                 readyAll();
             }
         });
@@ -245,43 +251,76 @@ public class Installer {
         }
     }
 
-    // Works up to 2GB because of long limitation
-    private static class Downloader extends SwingWorker<Void, Void> {
-        private final String url;
-        private final File file;
+    public JFrame getFrame() {
+        return frame;
+    }
 
-        public Downloader(String url, File file) {
-            this.url = url;
-            this.file = file;
-        }
+    public Path getStorageDirectory() {
+        return getAppDataDirectory().resolve(getStorageDirectoryName());
+    }
 
-        @Override
-        protected Void doInBackground() throws Exception {
-            URL url = new URL(this.url);
-            HttpsURLConnection connection = (HttpsURLConnection) url
-                    .openConnection();
-            long filesize = connection.getContentLengthLong();
-            if (filesize == -1) {
-                throw new Exception("Content length must not be -1 (unknown)!");
+    public Path getInstallDir() {
+        return customInstallDir != null ? customInstallDir : getDefaultInstallDir();
+    }
+
+    public Path getAppDataDirectory() {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win"))
+            return new File(System.getenv("APPDATA")).toPath();
+        else if (os.contains("mac"))
+            return new File(System.getProperty("user.home") + "/Library/Application Support").toPath();
+        else if (os.contains("nux"))
+            return new File(System.getProperty("user.home")).toPath();
+        else
+            return new File(System.getProperty("user.dir")).toPath();
+    }
+
+    public String getStorageDirectoryName() {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("mac"))
+            return "nova-installer";
+        else
+            return ".nova-installer";
+    }
+
+    public Path getDefaultInstallDir() {
+        String os = System.getProperty("os.name").toLowerCase();
+        Path mcDir;
+
+        if (os.contains("mac"))
+            mcDir = getAppDataDirectory().resolve("minecraft");
+        else
+            mcDir = getAppDataDirectory().resolve(".minecraft");
+
+        return mcDir.resolve("packs").resolve(selectedEdition.name);
+    }
+
+    public Path getVanillaGameDir() {
+        String os = System.getProperty("os.name").toLowerCase();
+        return os.contains("mac") ? getAppDataDirectory().resolve("minecraft") : getAppDataDirectory().resolve(".minecraft");
+    }
+
+    public boolean deleteDirectory(File dir) {
+        File[] allContents = dir.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
             }
-            long totalDataRead = 0;
-            try (java.io.BufferedInputStream in = new java.io.BufferedInputStream(
-                    connection.getInputStream())) {
-                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
-                try (java.io.BufferedOutputStream bout = new BufferedOutputStream(
-                        fos, 1024)) {
-                    byte[] data = new byte[1024];
-                    int i;
-                    while ((i = in.read(data, 0, 1024)) >= 0) {
-                        totalDataRead = totalDataRead + i;
-                        bout.write(data, 0, i);
-                        int percent = (int) ((totalDataRead * 100) / filesize);
-                        setProgress(percent);
-                    }
-                }
-            }
-            return null;
         }
+        return dir.delete();
+    }
+
+    public void setInteractionEnabled(boolean enabled) {
+        editionDropdown.setEnabled(enabled);
+        versionDropdown.setEnabled(enabled);
+        installDirectoryPicker.setEnabled(enabled);
+        installButton.setEnabled(enabled);
+    }
+
+    public void readyAll() {
+        installButton.setText("Install");
+        progressBar.setValue(0);
+        setInteractionEnabled(true);
     }
 
     public void runInstall(JFrame parent) {
@@ -423,71 +462,42 @@ public class Installer {
         }
     }
 
-    public Path getStorageDirectory() {
-        return getAppDataDirectory().resolve(getStorageDirectoryName());
-    }
+    // Works up to 2GB because of long limitation
+    private static class Downloader extends SwingWorker<Void, Void> {
+        private final String url;
+        private final File file;
 
-    public Path getInstallDir() {
-        return customInstallDir != null ? customInstallDir : getDefaultInstallDir();
-    }
-
-    public Path getAppDataDirectory() {
-        String os = System.getProperty("os.name").toLowerCase();
-        if (os.contains("win"))
-            return new File(System.getenv("APPDATA")).toPath();
-        else if (os.contains("mac"))
-            return new File(System.getProperty("user.home") + "/Library/Application Support").toPath();
-        else if (os.contains("nux"))
-            return new File(System.getProperty("user.home")).toPath();
-        else
-            return new File(System.getProperty("user.dir")).toPath();
-    }
-
-    public String getStorageDirectoryName() {
-        String os = System.getProperty("os.name").toLowerCase();
-        if (os.contains("mac"))
-            return "nova-installer";
-        else
-            return ".nova-installer";
-    }
-
-    public Path getDefaultInstallDir() {
-        String os = System.getProperty("os.name").toLowerCase();
-        Path mcDir;
-
-        if (os.contains("mac"))
-            mcDir = getAppDataDirectory().resolve("minecraft");
-        else
-            mcDir = getAppDataDirectory().resolve(".minecraft");
-
-        return mcDir.resolve("packs").resolve(selectedEdition.name);
-    }
-
-    public Path getVanillaGameDir() {
-        String os = System.getProperty("os.name").toLowerCase();
-        return os.contains("mac") ? getAppDataDirectory().resolve("minecraft") : getAppDataDirectory().resolve(".minecraft");
-    }
-
-    public boolean deleteDirectory(File dir) {
-        File[] allContents = dir.listFiles();
-        if (allContents != null) {
-            for (File file : allContents) {
-                deleteDirectory(file);
-            }
+        public Downloader(String url, File file) {
+            this.url = url;
+            this.file = file;
         }
-        return dir.delete();
-    }
 
-    public void setInteractionEnabled(boolean enabled) {
-        editionDropdown.setEnabled(enabled);
-        versionDropdown.setEnabled(enabled);
-        installDirectoryPicker.setEnabled(enabled);
-        installButton.setEnabled(enabled);
-    }
-
-    public void readyAll() {
-        installButton.setText("Install");
-        progressBar.setValue(0);
-        setInteractionEnabled(true);
+        @Override
+        protected Void doInBackground() throws Exception {
+            URL url = new URL(this.url);
+            HttpsURLConnection connection = (HttpsURLConnection) url
+                    .openConnection();
+            long filesize = connection.getContentLengthLong();
+            if (filesize == -1) {
+                throw new Exception("Content length must not be -1 (unknown)!");
+            }
+            long totalDataRead = 0;
+            try (java.io.BufferedInputStream in = new java.io.BufferedInputStream(
+                    connection.getInputStream())) {
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
+                try (java.io.BufferedOutputStream bout = new BufferedOutputStream(
+                        fos, 1024)) {
+                    byte[] data = new byte[1024];
+                    int i;
+                    while ((i = in.read(data, 0, 1024)) >= 0) {
+                        totalDataRead = totalDataRead + i;
+                        bout.write(data, 0, i);
+                        int percent = (int) ((totalDataRead * 100) / filesize);
+                        setProgress(percent);
+                    }
+                }
+            }
+            return null;
+        }
     }
 }
