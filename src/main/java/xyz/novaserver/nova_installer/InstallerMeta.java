@@ -20,10 +20,10 @@ public class InstallerMeta {
     public void load() throws IOException, JSONException {
         JSONObject json = JsonReader.readJsonFromUrl(this.metaUrl);
         json.getJSONArray("editions").forEach(object -> editions.add(new Edition((JSONObject) object)));
-        editions.forEach(edition -> edition.compatibleVersions.forEach(version -> {
-            if (!gameVersions.contains(version))
-                gameVersions.add(version);
-        }));
+        editions.forEach(edition -> {
+            if (!gameVersions.contains(edition.compatibleVersion))
+                gameVersions.add(edition.compatibleVersion);
+        });
     }
 
     public List<String> getGameVersions() {
@@ -37,22 +37,19 @@ public class InstallerMeta {
     public static class Edition {
         public final String name;
         public final String displayName;
+        public final String compatibleVersion;
         public boolean unstable;
-        public final List<String> compatibleVersions = new ArrayList<>();
 
         public Edition(JSONObject jsonObject) {
             this.name = jsonObject.getString("name");
             this.displayName = jsonObject.getString("display_name");
+            this.compatibleVersion = jsonObject.getString("minecraft_version");
 
             try {
                 this.unstable = jsonObject.getBoolean("unstable");
             } catch (JSONException e) {
                 System.out.println("No unstable value found for " + name + "! Using the default value of false.");
                 this.unstable = false;
-            }
-
-            for (int i = 0; i < jsonObject.getJSONArray("compatible_versions").toList().size(); i++){
-                compatibleVersions.add(jsonObject.getJSONArray("compatible_versions").toList().get(i).toString());
             }
         }
 

@@ -192,7 +192,7 @@ public class Installer {
 
         installButton = new JButton("Install");
         installButton.addActionListener(action -> {
-            if (!selectedEdition.compatibleVersions.contains(selectedVersion)) {
+            if (!selectedEdition.compatibleVersion.equals(selectedVersion)) {
                 JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.",
                         "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
                 return;
