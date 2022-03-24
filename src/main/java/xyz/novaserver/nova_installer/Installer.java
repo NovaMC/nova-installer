@@ -26,7 +26,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Installer {
-    private final String BASE_URL;
+    private final String DOWNLOAD_URL;
     private final Properties INSTALLER_INFO;
     private final List<InstallerMeta.Edition> EDITIONS;
     private final List<String> GAME_VERSIONS;
@@ -73,9 +73,9 @@ public class Installer {
             System.exit(1);
         }
 
-        BASE_URL = INSTALLER_INFO.getProperty("base-url");
+        DOWNLOAD_URL = INSTALLER_INFO.getProperty("download-url");
 
-        InstallerMeta installerMeta = new InstallerMeta(BASE_URL + "meta.json");
+        InstallerMeta installerMeta = new InstallerMeta(INSTALLER_INFO.getProperty("base-url") + "meta.json");
         try {
             installerMeta.load();
         } catch (IOException e) {
@@ -224,7 +224,7 @@ public class Installer {
         }
 
         // Check for updates and notify the user
-        UpdateMeta updateMeta = new UpdateMeta(INSTALLER_INFO.getProperty("updater-api-url"),
+        UpdateMeta updateMeta = new UpdateMeta(INSTALLER_INFO.getProperty("update-api-url"),
                 new Version(INSTALLER_INFO.getProperty("version")));
         try {
             updateMeta.load();
@@ -359,7 +359,7 @@ public class Installer {
         setInteractionEnabled(false);
 
         final String zipName = selectedEdition.name + ".zip";
-        final String downloadURL = BASE_URL + selectedVersion + "/" + zipName;
+        final String downloadURL = DOWNLOAD_URL + zipName;
         final File saveLocation = getStorageDirectory().resolve(zipName).toFile();
         final Downloader downloader = new Downloader(downloadURL, saveLocation);
 
