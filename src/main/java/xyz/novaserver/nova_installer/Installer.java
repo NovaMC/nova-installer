@@ -26,19 +26,16 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Installer {
-    private final String DOWNLOAD_URL;
     private final Properties INSTALLER_INFO;
+    private final InstallerMeta INSTALLER_META;
     private final List<InstallerMeta.Edition> EDITIONS;
-    private final List<String> GAME_VERSIONS;
 
     private InstallerMeta.Edition selectedEdition;
-    private String selectedVersion;
     private Path customInstallDir;
 
     private JFrame frame;
     private JButton installButton;
     private JComboBox<InstallerMeta.Edition> editionDropdown;
-    private JComboBox<String> versionDropdown;
     private JButton installDirectoryPicker;
     private JProgressBar progressBar;
 
@@ -73,11 +70,9 @@ public class Installer {
             System.exit(1);
         }
 
-        DOWNLOAD_URL = INSTALLER_INFO.getProperty("download-url");
-
-        InstallerMeta installerMeta = new InstallerMeta(INSTALLER_INFO.getProperty("base-url") + "meta.json");
+        INSTALLER_META = new InstallerMeta(INSTALLER_INFO.getProperty("meta-url"), INSTALLER_INFO.getProperty("download-api-url"));
         try {
-            installerMeta.load();
+            INSTALLER_META.load();
         } catch (IOException e) {
             System.out.println("Failed to fetch installer metadata from the server!");
             e.printStackTrace();
@@ -92,9 +87,7 @@ public class Installer {
             System.exit(1);
         }
 
-        GAME_VERSIONS = installerMeta.getGameVersions();
-        Collections.reverse(GAME_VERSIONS);
-        EDITIONS = installerMeta.getEditions();
+        EDITIONS = INSTALLER_META.getEditions();
     }
 
     public static void main(String[] args) {
@@ -144,21 +137,6 @@ public class Installer {
         editionPanel.add(editionDropdownLabel);
         editionPanel.add(editionDropdown);
 
-        JPanel versionPanel = new JPanel();
-        JLabel versionDropdownLabel = new JLabel("Select Game Version:");
-        versionDropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        if (selectedVersion == null) selectedVersion = GAME_VERSIONS.get(0);
-        versionDropdown = new JComboBox<>(GAME_VERSIONS.toArray(new String[0]));
-        versionDropdown.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                selectedVersion = (String) e.getItem();
-                readyAll();
-            }
-        });
-        versionPanel.add(versionDropdownLabel);
-        versionPanel.add(versionDropdown);
-
         JPanel installDirectoryPanel = new JPanel();
         JLabel installDirectoryPickerLabel = new JLabel("Select Install Directory:");
         installDirectoryPickerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -180,7 +158,6 @@ public class Installer {
         installDirectoryPanel.add(installDirectoryPicker);
 
         topPanel.add(editionPanel);
-        topPanel.add(versionPanel);
         topPanel.add(installDirectoryPanel);
 
         JPanel bottomPanel = new JPanel();
@@ -192,11 +169,6 @@ public class Installer {
 
         installButton = new JButton("Install");
         installButton.addActionListener(action -> {
-            if (!selectedEdition.compatibleVersion.equals(selectedVersion)) {
-                JOptionPane.showMessageDialog(frame, "The selected edition is not compatible with the chosen game version.",
-                        "Incompatible Edition", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
             if (selectedEdition.unstable) {
                 int result = JOptionPane.showOptionDialog(frame, "The selected edition is marked as unstable! " +
                                 "You may experience crashes or other stability errors while playing.\n\nContinue with installation?",
@@ -312,7 +284,6 @@ public class Installer {
 
     public void setInteractionEnabled(boolean enabled) {
         editionDropdown.setEnabled(enabled);
-        versionDropdown.setEnabled(enabled);
         installDirectoryPicker.setEnabled(enabled);
         installButton.setEnabled(enabled);
     }
@@ -336,7 +307,7 @@ public class Installer {
         try {
             String loaderVersion = Main.LOADER_META.getLatestVersion(false).getVersion();
             boolean success = VanillaLauncherIntegration.installToLauncher(getVanillaGameDir(), getInstallDir(),
-                    selectedEdition.displayName, selectedVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
+                    selectedEdition.displayName, selectedEdition.compatibleVersion, loaderName, loaderVersion, VanillaLauncherIntegration.Icon.NOVA);
             if (!success) {
                 System.out.println("Failed to install to launcher, canceling!");
                 return;
@@ -358,9 +329,18 @@ public class Installer {
         progressBar.setValue(0);
         setInteractionEnabled(false);
 
-        final String zipName = selectedEdition.name + ".zip";
-        final String downloadURL = DOWNLOAD_URL + zipName;
-        final File saveLocation = getStorageDirectory().resolve(zipName).toFile();
+        String downloadURL;
+        try {
+            downloadURL = INSTALLER_META.getDownloadUrl(selectedEdition.name);
+        } catch (IOException e) {
+            System.out.println("Failed to install pack!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "An error occured while attempting to download, " +
+                    "please contact Lui798!\nError: " + e, "Install Failed!", JOptionPane.ERROR_MESSAGE);
+            readyAll();
+            return;
+        }
+        final File saveLocation = getStorageDirectory().resolve(selectedEdition.name + ".zip").toFile();
         final Downloader downloader = new Downloader(downloadURL, saveLocation);
 
         downloader.addPropertyChangeListener(event -> {
@@ -410,7 +390,6 @@ public class Installer {
                 if (installSuccess) {
                     installButton.setText("Installation succeeded!");
                     editionDropdown.setEnabled(true);
-                    versionDropdown.setEnabled(true);
                     installDirectoryPicker.setEnabled(true);
                     JOptionPane.showMessageDialog(parent, "Successfully installed " + selectedEdition.displayName +
                                     " to your Minecraft launcher! Run this installer again when you want to update the pack.",
