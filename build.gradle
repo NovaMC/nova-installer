@@ -1,8 +1,8 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
-    id 'java'
-    id 'application'
+    id "java"
+    id "application"
     id "de.undercouch.download" version "4.1.2"
 }
 
@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation "org.json:json:20210307"
-    implementation 'com.formdev:flatlaf:1.6.5'
+    implementation 'com.formdev:flatlaf:2.1'
 
     implementation "net.fabricmc:fabric-installer:0.10.2"
 }
@@ -75,9 +75,9 @@ jar {
     from "LICENSE"
 
     from (configurations.compileClasspath.filter{ it.exists() }.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude 'META-INF/*.SF'
-        exclude 'META-INF/*.DSA'
-        exclude 'META-INF/*.RSA'
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
     }
 }
 

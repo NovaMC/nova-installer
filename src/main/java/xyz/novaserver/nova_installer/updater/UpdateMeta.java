@@ -3,45 +3,36 @@ package xyz.novaserver.nova_installer.updater;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.Properties;
 
 public class UpdateMeta {
-    private final String repoApiUrl;
-    private final Properties info = new Properties();
     private JSONObject latestJson;
+    private final String repoApiUrl;
+    private final Version currentVersion;
+    private Version latestVersion;
 
-    public UpdateMeta(String repoApiUrl) {
+    public UpdateMeta(String repoApiUrl, Version currentVersion) {
         this.repoApiUrl = repoApiUrl;
+        this.currentVersion = currentVersion;
     }
 
     public void load() throws IOException {
-        info.load(getClass().getClassLoader().getResourceAsStream("info.properties"));
         latestJson = JsonReader.readJsonFromUrl(repoApiUrl);
+        latestVersion = new Version(latestJson.getString("tag_name"));
     }
 
-    public String getCurrentVersion() {
-        return info.getProperty("version");
+    public Version getCurrentVersion() {
+        return currentVersion;
     }
 
-    public String getLatestVersion() {
-        return latestJson.getString("tag_name");
+    public Version getLatestVersion() {
+        return latestVersion;
     }
 
     public boolean hasLatestVersion() {
-        int current = versionStringToInt(getCurrentVersion());
-        int latest = versionStringToInt(getLatestVersion());
-        return current >= latest;
+        return latestVersion == null || currentVersion.compareTo(getLatestVersion()) >= 0;
     }
 
     public String getUpdateUrl() {
         return latestJson.getString("html_url");
-    }
-
-    public int versionStringToInt(String version) {
-        return Integer.parseInt(version.replaceAll("[^0-9]",""));
-    }
-
-    public int compare() {
-        return 0;
     }
 }

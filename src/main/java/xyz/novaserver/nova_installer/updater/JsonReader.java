@@ -1,5 +1,6 @@
 package xyz.novaserver.nova_installer.updater;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -21,7 +22,14 @@ public class JsonReader {
     }
 
     public static JSONObject readJsonFromUrl(String url) throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new URL(url).openStream(), StandardCharsets.UTF_8));
-        return new JSONObject(readAll(bufferedReader));
+        return new JSONObject(readAll(getReader(url)));
+    }
+
+    public static JSONArray readJsonArrayFromUrl(String url) throws IOException {
+        return new JSONArray(readAll(getReader(url)));
+    }
+
+    private static BufferedReader getReader(String url) throws IOException {
+        return new BufferedReader(new InputStreamReader(new URL(url).openStream(), StandardCharsets.UTF_8));
     }
 }
