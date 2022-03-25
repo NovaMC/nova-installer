@@ -41,12 +41,6 @@ public class Installer {
 
     public Installer() {
         FlatDarkLaf.setup();
-        try {
-            UIManager.setLookAndFeel(new FlatDarkLaf());
-        } catch (Exception e) {
-            System.out.println("Failed to set UI theme!");
-            e.printStackTrace();
-        }
 
         Main.LOADER_META = new MetaHandler(Reference.getMetaServerEndpoint("v2/versions/loader"));
         try {
