@@ -368,7 +368,7 @@ public class Installer {
 
                     if (modsFolder.exists() && modsFolder.isDirectory() && !isEmpty) {
                         int result = JOptionPane.showConfirmDialog(parent,"An existing mods folder was found in the selected game directory. " +
-                                        "Do you want to delete all existing mods before installation to prevent version conflicts?\n\n" +
+                                        "Do you want to delete all existing mods before installation to prevent conflicts?\n\n" +
                                         "(Unless you know exactly what you're doing and know how to solve conflicts, press \"Yes\")", "Mods Folder Detected",
                                 JOptionPane.YES_NO_OPTION,
                                 JOptionPane.QUESTION_MESSAGE);
@@ -379,6 +379,9 @@ public class Installer {
                 }
 
                 if (!modsFolder.exists() || !modsFolder.isDirectory()) modsFolder.mkdirs();
+
+                // Clear directories if specified
+                deleteDirectories(selectedEdition.clearDirs);
 
                 boolean installSuccess = installFromZip(saveLocation);
                 if (installSuccess) {
@@ -398,6 +401,12 @@ public class Installer {
             }
         });
         downloader.execute();
+    }
+
+    public void deleteDirectories(List<String> pathNames) {
+        for (String path : pathNames) {
+            deleteDirectory(getInstallDir().resolve(path.replace("/", File.separator)).toFile());
+        }
     }
 
     public boolean installFromZip(File zip) {

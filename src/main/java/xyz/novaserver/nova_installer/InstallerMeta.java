@@ -51,6 +51,7 @@ public class InstallerMeta {
         public final String displayName;
         public final String compatibleVersion;
         public boolean unstable;
+        public final List<String> clearDirs = new ArrayList<>();
 
         public Edition(JSONObject jsonObject) {
             this.name = jsonObject.getString("name");
@@ -62,6 +63,11 @@ public class InstallerMeta {
             } catch (JSONException e) {
                 System.out.println("No unstable value found for " + name + "! Using the default value of false.");
                 this.unstable = false;
+            }
+
+            final List<Object> jsonClearDirs = jsonObject.getJSONArray("clear_directories").toList();
+            for (Object jsonClearDir : jsonClearDirs) {
+                clearDirs.add(jsonClearDir.toString());
             }
         }
 
