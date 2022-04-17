@@ -65,7 +65,7 @@ public class InstallerMeta {
                 this.unstable = false;
             }
 
-            final List<Object> jsonClearDirs = jsonObject.getJSONArray("clear_directories").toList();
+            final List<Object> jsonClearDirs = jsonObject.getJSONArray("clear_dirs").toList();
             for (Object jsonClearDir : jsonClearDirs) {
                 clearDirs.add(jsonClearDir.toString());
             }
